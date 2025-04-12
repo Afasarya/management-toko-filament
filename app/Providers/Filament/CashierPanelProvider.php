@@ -26,6 +26,9 @@ class CashierPanelProvider extends PanelProvider
             ->id('cashier')
             ->path('pos')
             ->login()
+            ->brandName('GudangX POS')
+            ->brandLogo(fn () => view('filament.custom-logo'))
+            ->favicon(asset('images/favicon.ico'))
             ->colors([
                 'primary' => Color::Orange,
             ])
@@ -52,9 +55,6 @@ class CashierPanelProvider extends PanelProvider
             ->authMiddleware([
                 Authenticate::class,
             ])
-            ->brandName('GudangX POS')
-            ->brandLogo(asset('images/logo.png'))
-            ->favicon(asset('images/favicon.ico'))
             ->font('Inter')
             ->maxContentWidth('full')
             ->topNavigation()

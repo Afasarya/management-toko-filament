@@ -27,6 +27,9 @@ class AdminPanelProvider extends PanelProvider
             ->id('admin')
             ->path('admin')
             ->login()
+            ->brandName('GudangX Admin')
+            ->brandLogo(fn () => view('filament.custom-logo'))
+            ->favicon(asset('images/favicon.ico'))
             ->colors([
                 'primary' => Color::Orange,
             ])
@@ -54,13 +57,9 @@ class AdminPanelProvider extends PanelProvider
             ->authMiddleware([
                 Authenticate::class,
             ])
-            ->brandName('GudangX Admin')
-            ->brandLogo(asset('images/logo.png'))
-            ->favicon(asset('images/favicon.ico'))
             ->sidebarCollapsibleOnDesktop()
             ->maxContentWidth('full')
             ->font('Inter')
             ->databaseNotifications();
     }
-    
 }

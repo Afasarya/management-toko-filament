@@ -1,0 +1,14 @@
+/* Increase logo size */
+.fi-logo img, 
+.fi-sidebar-header img {
+    height: auto !important;
+    width: 180px !important; /* Adjust this value as needed */
+    max-height: none !important;
+}
+
+/* For top navigation */
+.fi-topbar .fi-logo img {
+    height: auto !important;
+    width: 180px !important; /* Adjust this value as needed */
+    max-height: none !important;
+}
