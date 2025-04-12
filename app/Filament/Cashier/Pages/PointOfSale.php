@@ -52,6 +52,9 @@ class PointOfSale extends Page implements HasForms
     public $customer_id;
     public $customer_name = 'Umum';
     
+    // Tambahkan listener untuk memastikan view diperbarui saat ada perubahan
+    protected $listeners = ['paymentUpdated' => 'updateChange'];
+    
     public function mount()
     {
         $this->invoice_number = $this->generateInvoiceNumber();
@@ -224,15 +227,28 @@ class PointOfSale extends Page implements HasForms
         }
     }
     
+    // Perbaikan: Metode ini sekarang segera memperbarui changeAmount
     public function updatePayment($value)
     {
         $this->paymentAmount = $value;
         $this->updateChange();
+        
+        // Dispatch event untuk memberi tahu view tentang perubahan
+        $this->dispatch('payment-updated', $this->changeAmount);
     }
     
+    // Perbaikan: Metode ini sekarang dapat dipanggil secara publik
     public function updateChange()
     {
-        $this->changeAmount = max(0, $this->paymentAmount - $this->cartTotal);
+        $this->changeAmount = max(0, (int)$this->paymentAmount - $this->cartTotal);
+    }
+    
+    // Fungsi tambahan untuk memperbarui pembayaran secara langsung
+    // Ini dapat dipanggil dari view menggunakan wire:keyup
+    public function setPaymentValue($value)
+    {
+        $this->paymentAmount = (int)$value;
+        $this->updateChange();
     }
     
     public function clearCart()
@@ -247,6 +263,9 @@ class PointOfSale extends Page implements HasForms
     {
         $this->paymentAmount = $amount;
         $this->updateChange();
+        
+        // Dispatch event untuk memberi tahu view tentang perubahan
+        $this->dispatch('payment-updated', $this->changeAmount);
     }
     
     public function processSale()

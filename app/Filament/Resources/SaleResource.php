@@ -104,26 +104,27 @@ class SaleResource extends Resource
                     
                 Forms\Components\Section::make('Sale Items')
                     ->schema([
-                        Forms\Components\Repeater::make('items')
-                            ->relationship()
+                        Forms\Components\Repeater::make('items_data') // Changed from items to items_data (non-relationship field)
                             ->schema([
                                 Forms\Components\Select::make('product_id')
                                     ->label('Product')
-                                    ->relationship('product', 'name', function (Builder $query) {
-                                        return $query->where('stock', '>', 0);
+                                    ->options(function () {
+                                        return Product::where('stock', '>', 0)
+                                            ->pluck('name', 'id');
                                     })
                                     ->required()
-                                    ->preload()
-                                    ->searchable()
-                                    ->distinct()
-                                    ->disableOptionsWhenSelectedInSiblingRepeaterItems()
-                                    ->live()
+                                    ->reactive()
                                     ->afterStateUpdated(function (Set $set, $state) {
                                         $product = Product::find($state);
                                         if ($product) {
                                             $set('price', $product->selling_price);
                                             $set('purchase_price', $product->purchase_price);
                                             $set('max_quantity', $product->stock);
+                                            
+                                            // Set derived values
+                                            $set('quantity', 1);
+                                            $set('total_price', $product->selling_price);
+                                            $set('total_purchase_price', $product->purchase_price);
                                         }
                                     }),
                                     
@@ -132,7 +133,7 @@ class SaleResource extends Resource
                                     ->numeric()
                                     ->prefix('Rp')
                                     ->default(0)
-                                    ->live()
+                                    ->reactive()
                                     ->afterStateUpdated(function (Set $set, Get $get) {
                                         $price = $get('price');
                                         $quantity = $get('quantity');
@@ -143,11 +144,11 @@ class SaleResource extends Resource
                                     ->required()
                                     ->numeric()
                                     ->prefix('Rp')
-                                    ->default(0)
-                                    ->hidden(),
+                                    ->default(0),
                                     
                                 Forms\Components\TextInput::make('max_quantity')
                                     ->numeric()
+                                    ->dehydrated(false)
                                     ->hidden(),
                                     
                                 Forms\Components\TextInput::make('quantity')
@@ -155,7 +156,7 @@ class SaleResource extends Resource
                                     ->numeric()
                                     ->default(1)
                                     ->minValue(1)
-                                    ->live()
+                                    ->reactive()
                                     ->afterStateUpdated(function (Set $set, Get $get) {
                                         $price = $get('price');
                                         $purchasePrice = $get('purchase_price');
@@ -173,31 +174,30 @@ class SaleResource extends Resource
                                     ->required()
                                     ->numeric()
                                     ->prefix('Rp')
-                                    ->disabled()
+                                    ->readonly()
                                     ->default(0),
                                     
                                 Forms\Components\TextInput::make('total_purchase_price')
                                     ->required()
                                     ->numeric()
                                     ->prefix('Rp')
-                                    ->default(0)
-                                    ->hidden(),
+                                    ->default(0),
                             ])
                             ->columns(3)
-                            ->itemLabel(fn (array $state): ?string => $state['product_id'] ? Product::find($state['product_id'])?->name : null)
+                            ->itemLabel(fn (array $state): ?string => isset($state['product_id']) ? Product::find($state['product_id'])?->name : null)
                             ->reorderable(false)
                             ->addActionLabel('Add Product')
-                            ->live()
+                            ->reactive()
                             ->afterStateUpdated(function (Get $get, Set $set) {
-                                $items = $get('items');
+                                $items = $get('items_data');
                                 $totalAmount = 0;
                                 $totalCost = 0;
                                 
                                 if (is_array($items)) {
                                     foreach ($items as $item) {
                                         if (isset($item['total_price'])) {
-                                            $totalAmount += $item['total_price'];
-                                            $totalCost += $item['total_purchase_price'] ?? 0;
+                                            $totalAmount += (int)$item['total_price'];
+                                            $totalCost += (int)($item['total_purchase_price'] ?? 0);
                                         }
                                     }
                                 }
@@ -217,7 +217,7 @@ class SaleResource extends Resource
                             ->required()
                             ->numeric()
                             ->prefix('Rp')
-                            ->disabled()
+                            ->readonly()
                             ->default(0),
                             
                         Forms\Components\TextInput::make('cost_amount')
@@ -232,7 +232,7 @@ class SaleResource extends Resource
                             ->numeric()
                             ->prefix('Rp')
                             ->default(0)
-                            ->live()
+                            ->reactive()
                             ->afterStateUpdated(function (Set $set, Get $get) {
                                 $payment = $get('payment_amount');
                                 $total = $get('total_amount');
@@ -243,7 +243,7 @@ class SaleResource extends Resource
                             ->required()
                             ->numeric()
                             ->prefix('Rp')
-                            ->disabled()
+                            ->readonly()
                             ->default(0),
                     ])->columns(2),
             ]);

@@ -62,4 +62,5 @@ class AdminPanelProvider extends PanelProvider
             ->font('Inter')
             ->databaseNotifications();
     }
+    
 }

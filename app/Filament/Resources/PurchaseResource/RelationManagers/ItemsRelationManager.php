@@ -39,7 +39,12 @@ class ItemsRelationManager extends RelationManager
                     ->numeric()
                     ->prefix('Rp')
                     ->default(0)
-                    ->live(),
+                    ->live()
+                    ->afterStateUpdated(function (Set $set, Get $get) {
+                        $price = $get('price');
+                        $quantity = $get('quantity');
+                        $set('total_price', $price * $quantity);
+                    }),
                     
                 Forms\Components\TextInput::make('quantity')
                     ->required()
@@ -57,7 +62,7 @@ class ItemsRelationManager extends RelationManager
                     ->required()
                     ->numeric()
                     ->prefix('Rp')
-                    ->disabled()
+                    ->readonly()  // Changed from disabled to readonly
                     ->default(0),
             ]);
     }

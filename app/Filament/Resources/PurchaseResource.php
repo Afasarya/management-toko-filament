@@ -108,6 +108,8 @@ class PurchaseResource extends Resource
                                         $product = Product::find($state);
                                         if ($product) {
                                             $set('price', $product->purchase_price);
+                                            // Trigger total calculation
+                                            $set('quantity', 1);
                                         }
                                     }),
                                     
@@ -116,7 +118,13 @@ class PurchaseResource extends Resource
                                     ->numeric()
                                     ->prefix('Rp')
                                     ->default(0)
-                                    ->live(),
+                                    ->live()
+                                    ->afterStateUpdated(function (Set $set, Get $get) {
+                                        $price = $get('price');
+                                        $quantity = $get('quantity');
+                                        $total = $price * $quantity;
+                                        $set('total_price', $total);
+                                    }),
                                     
                                 Forms\Components\TextInput::make('quantity')
                                     ->required()
@@ -127,14 +135,16 @@ class PurchaseResource extends Resource
                                     ->afterStateUpdated(function (Set $set, Get $get) {
                                         $price = $get('price');
                                         $quantity = $get('quantity');
-                                        $set('total_price', $price * $quantity);
+                                        $total = $price * $quantity;
+                                        $set('total_price', $total);
                                     }),
                                     
                                 Forms\Components\TextInput::make('total_price')
                                     ->required()
                                     ->numeric()
                                     ->prefix('Rp')
-                                    ->disabled()
+                                    ->dehydrated(true) // Ensure this value is included in form submission
+                                    ->readonly()
                                     ->default(0),
                             ])
                             ->columns(4)
@@ -149,7 +159,7 @@ class PurchaseResource extends Resource
                                 if (is_array($items)) {
                                     foreach ($items as $item) {
                                         if (isset($item['total_price'])) {
-                                            $totalAmount += $item['total_price'];
+                                            $totalAmount += (int)$item['total_price'];
                                         }
                                     }
                                 }
@@ -163,8 +173,9 @@ class PurchaseResource extends Resource
                             ->required()
                             ->numeric()
                             ->prefix('Rp')
-                            ->disabled()
-                            ->default(0),
+                            ->default(0)
+                            ->dehydrated(true) // Ensure this value is included in form submission
+                            ->readonly(),
                     ]),
             ]);
     }
@@ -230,9 +241,11 @@ class PurchaseResource extends Resource
                         // Revert stock updates
                         foreach ($record->items as $item) {
                             $product = $item->product;
-                            $product->purchased -= $item->quantity;
-                            $product->stock -= $item->quantity;
-                            $product->save();
+                            if ($product) {
+                                $product->purchased -= $item->quantity;
+                                $product->stock -= $item->quantity;
+                                $product->save();
+                            }
                         }
                     }),
             ])
@@ -244,9 +257,11 @@ class PurchaseResource extends Resource
                             foreach ($records as $record) {
                                 foreach ($record->items as $item) {
                                     $product = $item->product;
-                                    $product->purchased -= $item->quantity;
-                                    $product->stock -= $item->quantity;
-                                    $product->save();
+                                    if ($product) {
+                                        $product->purchased -= $item->quantity;
+                                        $product->stock -= $item->quantity;
+                                        $product->save();
+                                    }
                                 }
                             }
                         }),

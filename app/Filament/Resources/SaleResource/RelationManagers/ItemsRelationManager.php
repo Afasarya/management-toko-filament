@@ -36,6 +36,10 @@ class ItemsRelationManager extends RelationManager
                             $set('price', $product->selling_price);
                             $set('purchase_price', $product->purchase_price);
                             $set('max_quantity', $product->stock);
+                            // Set initial values for calculated fields
+                            $set('quantity', 1);
+                            $set('total_price', $product->selling_price);
+                            $set('total_purchase_price', $product->purchase_price);
                         }
                     }),
                     
@@ -56,10 +60,12 @@ class ItemsRelationManager extends RelationManager
                     ->numeric()
                     ->prefix('Rp')
                     ->default(0)
-                    ->hidden(),
+                    ->dehydrated(true) // Ensure this is included in form submission
+                    ->live(),
                     
                 Forms\Components\TextInput::make('max_quantity')
                     ->numeric()
+                    ->dehydrated(false) // This doesn't need to be saved
                     ->hidden(),
                     
                 Forms\Components\TextInput::make('quantity')
@@ -80,7 +86,8 @@ class ItemsRelationManager extends RelationManager
                     ->required()
                     ->numeric()
                     ->prefix('Rp')
-                    ->disabled()
+                    ->readonly() // Changed from disabled to readonly
+                    ->dehydrated(true) // Ensure this is included in form submission
                     ->default(0),
                     
                 Forms\Components\TextInput::make('total_purchase_price')
@@ -88,7 +95,8 @@ class ItemsRelationManager extends RelationManager
                     ->numeric()
                     ->prefix('Rp')
                     ->default(0)
-                    ->hidden(),
+                    ->dehydrated(true) // Ensure this is included in form submission
+                    ->live(),
             ]);
     }
 
@@ -127,6 +135,16 @@ class ItemsRelationManager extends RelationManager
                             throw new \Exception("Not enough stock for {$product->name}. Available: {$product->stock}");
                         }
                         
+                        // Ensure purchase_price is set
+                        if (!isset($data['purchase_price']) && $product) {
+                            $data['purchase_price'] = $product->purchase_price;
+                        }
+                        
+                        // Ensure total_purchase_price is set
+                        if (!isset($data['total_purchase_price']) && isset($data['purchase_price']) && isset($data['quantity'])) {
+                            $data['total_purchase_price'] = $data['purchase_price'] * $data['quantity'];
+                        }
+                        
                         // Update sale total amount
                         $sale = $livewire->getOwnerRecord();
                         $sale->total_amount += $data['total_price'];
@@ -157,6 +175,16 @@ class ItemsRelationManager extends RelationManager
                         
                         if ($availableStock < $data['quantity']) {
                             throw new \Exception("Not enough stock for {$product->name}. Available: {$availableStock}");
+                        }
+                        
+                        // Ensure purchase_price is set
+                        if (!isset($data['purchase_price']) && $product) {
+                            $data['purchase_price'] = $product->purchase_price;
+                        }
+                        
+                        // Ensure total_purchase_price is set
+                        if (!isset($data['total_purchase_price']) && isset($data['purchase_price']) && isset($data['quantity'])) {
+                            $data['total_purchase_price'] = $data['purchase_price'] * $data['quantity'];
                         }
                         
                         // Update sale total amount
