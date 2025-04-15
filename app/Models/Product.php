@@ -26,6 +26,13 @@ class Product extends Model
         'min_stock',
     ];
 
+    // Add accessor properties
+    protected $appends = [
+        'profit',
+        'profit_percentage',
+        'total_value'
+    ];
+
     public function category(): BelongsTo
     {
         return $this->belongsTo(Category::class);
@@ -46,15 +53,16 @@ class Product extends Model
         return $this->hasMany(SaleItem::class);
     }
     
-    public function getProfit(): int
+    // Convert to proper Laravel accessor syntax
+    public function getProfitAttribute(): int
     {
         return $this->selling_price - $this->purchase_price;
     }
     
-    public function getProfitPercentage(): float
+    public function getProfitPercentageAttribute(): float
     {
         if ($this->purchase_price > 0) {
-            return round(($this->getProfit() / $this->purchase_price) * 100, 2);
+            return round(($this->profit / $this->purchase_price) * 100, 2);
         }
         return 0;
     }
@@ -64,7 +72,7 @@ class Product extends Model
         return $this->stock <= $this->min_stock;
     }
     
-    public function getTotalValue(): int
+    public function getTotalValueAttribute(): int
     {
         return $this->stock * $this->purchase_price;
     }
